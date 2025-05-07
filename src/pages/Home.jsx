@@ -2,7 +2,7 @@ import {useState} from "react";
 import axios from "axios";
 import SearchBar from "../Components/SearchBar";
 import {motion} from "framer-motion";
-import "./style.css";
+// import "./style.css";
 
 import { WiDaySunny, WiCloud, WiRain, WiStrongWind } from "react-icons/wi";
 
@@ -81,18 +81,13 @@ function home(){
         
         <motion.li
           key={index}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: index * 0.05 }}
           className="weather-item"
         >
           <span className="hour">
              {new Date(weather.hourly.time[index]).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
-                })
-                
-              }
+              })}
           </span>
           <span className="temp">🌡️ {temp}°C</span>
           <span className="humidity">
@@ -111,10 +106,11 @@ function home(){
       ))}
     </ul>
   </motion.div>
-): 
- (
-  <p classname="no-data">🌍 Enter a city to see the weather.</p>
 )}
+{/* {Displays no data message} */}
+ 
+  <p classname="no-data">🌍 Enter a city to see the weather.</p>
+
 </div>
 );
 }
