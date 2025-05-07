@@ -114,8 +114,8 @@ function Home() {
                 </p>
                 <div>{getWeatherIcon(weather.daily.weathercode[i])}</div>
                 <p>
-                  {weather.daily.temperature_2m_min[i]}°C/{" "}
-                  {weather.daily.temperature_2m_max[i]}°C{" "}
+                  {weather.daily.temperature_2m_min[i]}°- {" "}
+                  {weather.daily.temperature_2m_max[i]}°
                 </p>
               </div>
             ))}
