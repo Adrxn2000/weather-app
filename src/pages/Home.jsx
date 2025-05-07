@@ -1,118 +1,129 @@
-import {useState} from "react";
+import { useState } from "react";
 import axios from "axios";
-import SearchBar from "../Components/SearchBar";
-import {motion} from "framer-motion";
-// import "./style.css";
+import { motion } from "framer-motion";
+import {
+  WiDaySunny,
+  WiCloud,
+  WiRain,
+  WiStrongWind,
+} from "react-icons/wi";
 
-import { WiDaySunny, WiCloud, WiRain, WiStrongWind } from "react-icons/wi";
+function Home() {
+  const [location, setLocation] = useState("");
+  const [weather, setWeather] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-function home(){
-    const [location, setLocation] = useState("");
-    const [weather, setWeather] = useState(null);
-    const [loading, setLoading] = useState(false);
+  const getWeatherIcon = (code) => {
+    if (code === 0) return <WiDaySunny />;
+    if (code >= 1 && code <= 3) return <WiCloud />;
+    if (code === 61) return <WiRain />;
+    return <WiStrongWind />;
+  };
 
-    const getWeatherIcon = (code) => {
-        if (code === 0) return <WiDaySunny />;
-        if (code >= 1 && code <= 3) return <WiCloud />;
-        if (code === 61) return <WiRain />;
-        return <WiStrongWind />;
-      };
- const fetchWeather = async () => { 
-   setLoading(true); // Set loading state to true
-  //  console.log(`Fetching weather data for ${location}`);
-     
-        try{
-            // Convert location name to latitude and longitude
-            const geoResponse = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${location}`);
+  const fetchWeather = async () => {
+    setLoading(true);
 
-            if(geoResponse.data.length === 0){
-                alert("Location not found. Please try again.");
-                setLoading(false); // Set loading state to false
-                return;
-            }
+    try {
+      const geoResponse = await axios.get(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${location}`
+      );
 
-            const{lat, lon} = geoResponse.data[0];
+      if (geoResponse.data.length === 0) {
+        alert("Location not found. Please try again.");
+        setLoading(false);
+        return;
+      }
 
-            // fetch weather data from Open-Meteo API
-            const weatherResponse = await axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation_probability,weathercode&timezone=auto`);
-            // console.log("Weather response", weatherResponse.data); // log weather response
-            setWeather(weatherResponse.data);
-          } catch (error){
+      const { lat, lon } = geoResponse.data[0];
 
-            console.error("Error fetching weather data", error);
-        }finally{
-          setLoading(false); // Set loading state to false
-        }
+      const weatherResponse = await axios.get(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation_probability,weathercode&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&timezone=auto`
+      );
 
-        // const data = await response.json();
-        //  setWeather(data);
-    };
+      setWeather(weatherResponse.data);
+    } catch (error) {
+      console.error("Error fetching weather data", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return(
-        <div className="container">
-          <h1 className="title">🌎 Weather App</h1>
-          <div className="search-bar">
-            
-         
-            <input
-            type="text"
-            placeholder="Enter location"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)} // Handle location input
-            className="location-input"
-            />
-            <button onClick={fetchWeather} className="fetch-button">
-              🔄 get Weather
-            </button>
-            </div>
-            {loading && <p className="loading">⏳Loading...</p>}
+  return (
+    <div className="weather-app">
+      <h1 className="title">🌤️ Weather Dashboard</h1>
 
-{/* {Displays weather data} */}
+      {/* Search Input */}
+      <div className="search-section">
+        <input
+          type="text"
+          placeholder="Search city"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+        />
+        <button onClick={fetchWeather}>Search</button>
+      </div>
 
-{weather && weather.hourly && weather.hourly.temperature_2m &&(
-  <motion.div
-    className="weather-card"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-  >
-    <h2>Weather in {location}</h2>
-    <ul className="weather-list">
-      {weather.hourly.temperature_2m.slice(0, 6).map((temp, index) => (
-        
-        <motion.li
-          key={index}
-          className="weather-item"
+      {loading && <p className="loading">Loading...</p>}
+
+      {/* Weather Data */}
+      {weather && weather.hourly && (
+        <motion.div
+          className="weather-container"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
         >
-          <span className="hour">
-             {new Date(weather.hourly.time[index]).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-          </span>
-          <span className="temp">🌡️ {temp}°C</span>
-          <span className="humidity">
-            💧 {weather.hourly.relative_humidity_2m[index]}%
-          </span>
+          {/* Current Weather */}
+          <div className="current-weather">
+            <div className="weather-icon">
+              {getWeatherIcon(weather.hourly.weathercode[0])}
+            </div>
+            <div className="weather-details">
+              <h2>{location}</h2>
+              <p>{new Date(weather.hourly.time[0]).toLocaleDateString()}</p>
+              <p className="temp">{weather.hourly.temperature_2m[0]}°C</p>
+            </div>
+          </div>
 
-          <span className="wind">
-            💨 {weather.hourly.wind_speed_10m[index]}km/h
-          </span>
-          <span className="precip">
-            🌧️ {weather.hourly.precipitation_probability[index]}%
-            </span>
-          <span className="weather-icon">{getWeatherIcon(weather.hourly.weather-code[index])}</span>
+          {/* Hourly Forecast */}
+          <div className="section-title">Today’s Forecast</div>
+          <div className="hourly-scroll">
+            {weather.hourly.temperature_2m.slice(0, 6).map((temp, index) => (
+              <div className="hour-card" key={index}>
+                <p>
+                  {new Date(weather.hourly.time[index]).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+                <div>{getWeatherIcon(weather.hourly.weathercode[index])}</div>
+                <p>{temp}°C</p>
+              </div>
+            ))}
+          </div>
 
-        </motion.li>
-      ))}
-    </ul>
-  </motion.div>
-)}
-{/* {Displays no data message} */}
- 
-  <p classname="no-data">🌍 Enter a city to see the weather.</p>
-
-</div>
-);
+          {/* Daily Forecast */}
+          <div className="section-title">7-Day Forecast</div>
+          <div className="daily-forecast">
+            {weather.daily.time.slice(0, 7).map((date, i) => (
+              <div className="day-card" key={i}>
+                <p>
+                  {new Date(date).toLocaleDateString(undefined, {
+                    weekday: "short",
+                  })}
+                </p>
+                <div>{getWeatherIcon(weather.daily.weathercode[i])}</div>
+                <p>
+                  {weather.daily.temperature_2m_min[i]}°C/{" "}
+                  {weather.daily.temperature_2m_max[i]}°C{" "}
+                </p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
 }
 
-export default home;
+export default Home;
