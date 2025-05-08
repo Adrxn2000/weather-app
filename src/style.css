@@ -1,12 +1,13 @@
 /* General Container */
 .weather-app {
-  max-width: 900px;
+  /* max-width: 900px; */
   margin: 2rem auto;
   padding: 1rem;
   font-family: "Segoe UI", sans-serif;
   text-align: center;
   color: #222;
-  background: linear-gradient(to bottom right, #e0f7fa, #80deea);
+  background: url("./assets/rainclouds-rain-blue-sky_149267-652.avif");
+  background-size: cover;
 }
 
 /* Title */
@@ -53,12 +54,26 @@
   padding: 1.5rem;
 }
 
+
 /* Current Weather Summary */
 .current-weather {
+  background-color: red;
   display: flex;
+  flex-direction: column;
+  /* align-items: center; */
+  /* gap: 1rem; */
+  /* margin-bottom: 2rem; */
+  padding: 0;
+  border-radius: 15px;
+  width: 35%;
+}
+.current-weather-location{
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  /* Spacing for div's inside */
+  margin-bottom: calc(2% - 20px);
+  ;
 }
 
 .weather-icon {
@@ -66,10 +81,17 @@
   margin-right: 10px;
 }
 
-.weather-details {
+.weather-details-container {
+  display: flex;
+  align-items: center;
+  /* flex-direction: column; */
+  /* gap: 0.2rem; */
+  /* padding: auto; */
+}
+.weather-details{
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  align-items: start;
 }
 
 .temp {
@@ -88,13 +110,16 @@
 .hourly-scroll {
   display: flex;
   overflow-x: auto;
+  text-align: center;
+  justify-content: center;
   gap: 1rem;
   padding-bottom: 1rem;
 }
 
 .hour-card {
   min-width: 80px;
-  text-align: center;
+  
+  
   background-color: #549de6;
   padding: 0.75rem;
   border-radius: 8px;

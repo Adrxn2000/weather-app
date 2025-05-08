@@ -7,7 +7,6 @@ import {
   WiRain,
   WiStrongWind,
 } from "react-icons/wi";
-
 function Home() {
   const [location, setLocation] = useState("");
   const [weather, setWeather] = useState(null);
@@ -73,15 +72,22 @@ function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
+          
           {/* Current Weather */}
           <div className="current-weather">
+            <div className="current-weather-location">
+            <h3>Current Weather</h3>
+            <p>{location}</p>
+            </div>
+            
+            <div className="weather-details-container">
             <div className="weather-icon">
               {getWeatherIcon(weather.hourly.weathercode[0])}
             </div>
             <div className="weather-details">
-              <h2>{location}</h2>
-              <p>{new Date(weather.hourly.time[0]).toLocaleDateString()}</p>
+            <p>{new Date(weather.hourly.time[0]).toLocaleDateString()}</p>
               <p className="temp">{weather.hourly.temperature_2m[0]}°C</p>
+            </div>
             </div>
           </div>
 
@@ -114,7 +120,7 @@ function Home() {
                 </p>
                 <div>{getWeatherIcon(weather.daily.weathercode[i])}</div>
                 <p>
-                  {weather.daily.temperature_2m_min[i]}°- {" "}
+                  {weather.daily.temperature_2m_min[i]}° - {" "}
                   {weather.daily.temperature_2m_max[i]}°
                 </p>
               </div>
