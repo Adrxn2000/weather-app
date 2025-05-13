@@ -1,21 +1,13 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { nav } from "framer-motion/client";
-// import { motion } from "framer-motion";
-// import {
-//   WiDaySunny,
-//   WiCloud,
-//   WiRain,
-//   WiStrongWind,
-// } from "react-icons/wi";
 
-function Home() {
+// ... (Your SunnyIcon, CloudyIcon, RainIcon, WindIcon, HumidityIcon, PrecipitationIcon remain unchanged)
+
+export default function WeatherDashboard() {
   const [location, setLocation] = useState("");
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [coordinates, setCoordinates] = useState({ lat: null, lon: null});
-
-  
+  const [coordinates, setCoordinates] = useState({ lat: null, lon: null });
 
   const getWeatherIcon = (code) => {
     if (code === 0) return <SunnyIcon />;
@@ -24,71 +16,66 @@ function Home() {
     return <WindIcon />;
   };
 
-  //Auto-detect location
-  useEffect(()=>{
-    navigator.geolocation.getCurrentPosition(asyn (pos) =>{
-      const {latitude, longitude} = pos.coords;
-      setCoordinates({lat:latitude, lon: longitude});
+  // Auto-detect location on load
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setCoordinates({ lat: latitude, lon: longitude });
 
-      try{
-        const geoResponse = await axios.get(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
-        const city =
-        geoResponse.data.address.city || geoResponse.data.address.town||
-        geoResponse.data.address.village ||
-        "Your Location";
-
-        setLocation(city);
-        fetchWeather(latitude, longitude, city); // auto fetch weather
-      } catch (err) {
-        console.error("Reverse geocoding failed", err);
-
+        try {
+          const res = await axios.get(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+          );
+          const city =
+            res.data.address.city ||
+            res.data.address.town ||
+            res.data.address.village ||
+            "Your Location";
+          setLocation(city);
+          fetchWeather(latitude, longitude, city); // auto fetch weather
+        } catch (err) {
+          console.error("Reverse geocoding failed", err);
+        }
+      },
+      (err) => {
+        console.warn("Geolocation error:", err);
+        // fallback coordinates for New York
+        const lat = 40.7128;
+        const lon = -74.006;
+        setCoordinates({ lat, lon });
+        setLocation("New York");
+        fetchWeather(lat, lon, "New York");
       }
-    },
-    (err) => {
-      console.error("Geolocation error:", err);
-      //fallback coordinates for New York
-      const lat = 40.7128;
-      const lon = -74.006;
+    );
+  }, []);
 
-      setCoordinates({lat, lon});
-      setLocation("New York");
-      fetchWeather(lat, lon, "New York");  // auto fetch weather
-    }
-  };
-}, []);
-
-
-  const fetchWeather = async (latParam, lonParam, name = null => {
+  const fetchWeather = async (latParam, lonParam, name = null) => {
     setLoading(true);
-
     try {
-
       let lat = latParam;
       let lon = lonParam;
 
-      if(!lat || !lon){
+      if (!lat || !lon) {
         // Get coords from search input
-
-      const geoResponse = await axios.get(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${location}`
-      );
-
-      if (geoResponse.data.length === 0) {
-        alert("Location not found. Please try again.");
-        setLoading(false);
-        return;
+        const geoRes = await axios.get(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${location}`
+        );
+        if (geoRes.data.length === 0) {
+          alert("Location not found.");
+          setLoading(false);
+          return;
+        }
+        lat = geoRes.data[0].lat;
+        lon = geoRes.data[0].lon;
+        setCoordinates({ lat, lon });
+        if (!name) setLocation(geoRes.data[0].display_name);
       }
 
-      const { lat, lon } = geoResponse.data[0];
-      setCoordinates({lat, lon});
-      if (!name) setLocation(geoResponse.data[0].display_name);
-    }
-
-      const weatherResponse = await axios.get(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation_probability,weathercode&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&timezone=auto`
+      const weatherRes = await axios.get(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation_probability,weathercode&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`
       );
-
-      setWeather(weatherResponse.data);
+      setWeather(weatherRes.data);
     } catch (err) {
       console.error("Error fetching weather data", err);
     } finally {
@@ -98,39 +85,35 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-50 p-4 md:p-8">
-   <div className="max-w-6xl mx-auto">
-   <h1 className="text-3xl md:text-4xl font-bold text-blue-800 text-center mb-8">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-3xl md:text-4xl font-bold text-blue-800 text-center mb-8">
           🌤️ Weather Dashboard
         </h1>
 
-      {/* Search Input */}
-      <div className="flex flex-col md:flex-row gap-2 mb-8">
-
-        <input
-          type="text"
-          placeholder="Search city"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-           className="flex-1 p-3 rounded-lg shadow-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-
-        />
-        <button
+        {/* Search Input */}
+        <div className="flex flex-col md:flex-row gap-2 mb-8">
+          <input
+            type="text"
+            placeholder="Search city"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="flex-1 p-3 rounded-lg shadow-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
             onClick={() => fetchWeather()}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200"
           >
+            Search
+          </button>
+        </div>
 
-search
-</button>
-</div>
-
-{loading && (
+        {loading && (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         )}
 
-     
-{weather && (
+        {weather && (
           <div className="space-y-8">
             {/* Current Weather */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -252,3 +235,4 @@ search
       </div>
     </div>
   );
+}
