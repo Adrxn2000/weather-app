@@ -1,4 +1,129 @@
 import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
+const getWeatherTheme = (code) => {
+  if (code === 0) return { bg: "from-amber-400 via-orange-300 to-sky-400", accent: "#f59e0b", name: "clear" };
+  if (code >= 1 && code <= 3) return { bg: "from-slate-500 via-blue-400 to-sky-300", accent: "#94a3b8", name: "cloudy" };
+  if (code >= 45 && code <= 48) return { bg: "from-gray-600 via-gray-500 to-gray-400", accent: "#9ca3af", name: "fog" };
+  if (code >= 51 && code <= 67) return { bg: "from-slate-700 via-blue-700 to-blue-500", accent: "#60a5fa", name: "rain" };
+  if (code >= 71 && code <= 86) return { bg: "from-slate-300 via-blue-200 to-white", accent: "#bfdbfe", name: "snow" };
+  if (code >= 95 && code <= 99) return { bg: "from-gray-900 via-purple-900 to-slate-800", accent: "#a78bfa", name: "thunder" };
+  return { bg: "from-sky-600 via-blue-500 to-indigo-400", accent: "#38bdf8", name: "default" };
+};
+
+const getWeatherLabel = (code) => {
+  if (code === 0) return "Clear Sky";
+  if (code === 1) return "Mainly Clear";
+  if (code === 2) return "Partly Cloudy";
+  if (code === 3) return "Overcast";
+  if (code >= 45 && code <= 48) return "Foggy";
+  if (code >= 51 && code <= 55) return "Light Drizzle";
+  if (code >= 61 && code <= 67) return "Rainy";
+  if (code >= 71 && code <= 86) return "Snowy";
+  if (code >= 95 && code <= 99) return "Thunderstorm";
+  return "Unknown";
+};
+
+const WeatherIcon = ({ code, size = 64 }) => {
+  const s = size;
+  if (code === 0) return (
+    <motion.svg width={s} height={s} viewBox="0 0 64 64" animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }}>
+      <circle cx="32" cy="32" r="12" fill="#fbbf24" />
+      {[0,45,90,135,180,225,270,315].map((angle, i) => (
+        <motion.line key={i} x1="32" y1="32"
+          x2={32 + 22 * Math.cos((angle * Math.PI) / 180)}
+          y2={32 + 22 * Math.sin((angle * Math.PI) / 180)}
+          stroke="#fbbf24" strokeWidth="3" strokeLinecap="round"
+          animate={{ opacity: [1, 0.4, 1] }}
+          transition={{ duration: 2, repeat: Infinity, delay: i * 0.25 }} />
+      ))}
+    </motion.svg>
+  );
+  if (code >= 51 && code <= 67) return (
+    <svg width={s} height={s} viewBox="0 0 64 64">
+      <motion.path d="M48,28c0-8.8-7.2-16-16-16S16,19.2,16,28c-6.6,0-12,5.4-12,12s5.4,12,12,12h32c6.6,0,12-5.4,12-12S54.6,28,48,28z" fill="rgba(148,163,184,0.9)"
+        animate={{ y: [0, -2, 0] }} transition={{ duration: 3, repeat: Infinity }} />
+      {[20, 32, 44].map((x, i) => (
+        <motion.line key={i} x1={x} y1="54" x2={x - 4} y2="62" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round"
+          animate={{ y: [0, 4, 0], opacity: [0, 1, 0] }}
+          transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.3 }} />
+      ))}
+    </svg>
+  );
+  if (code >= 95) return (
+    <svg width={s} height={s} viewBox="0 0 64 64">
+      <motion.path d="M48,20c0-8.8-7.2-16-16-16S16,11.2,16,20c-6.6,0-12,5.4-12,12s5.4,12,12,12h32c6.6,0,12-5.4,12-12S54.6,20,48,20z" fill="rgba(71,85,105,0.9)"
+        animate={{ y: [0, -2, 0] }} transition={{ duration: 3, repeat: Infinity }} />
+      <motion.path d="M36,28l-8,12h6l-4,10 10-14h-6l6-8z" fill="#fde047"
+        animate={{ opacity: [0, 1, 0], scale: [0.8, 1.1, 0.8] }}
+        transition={{ duration: 0.8, repeat: Infinity, delay: 0.5 }} />
+    </svg>
+  );
+  if (code >= 71 && code <= 86) return (
+    <svg width={s} height={s} viewBox="0 0 64 64">
+      <motion.path d="M48,22c0-8.8-7.2-16-16-16S16,13.2,16,22c-6.6,0-12,5.4-12,12s5.4,12,12,12h32c6.6,0,12-5.4,12-12S54.6,22,48,22z" fill="rgba(186,230,253,0.9)"
+        animate={{ y: [0, -2, 0] }} transition={{ duration: 3, repeat: Infinity }} />
+      {[18, 28, 38, 48].map((x, i) => (
+        <motion.circle key={i} cx={x} cy={54} r="2.5" fill="white"
+          animate={{ y: [0, 6, 12], opacity: [0, 1, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.3 }} />
+      ))}
+    </svg>
+  );
+  return (
+    <svg width={s} height={s} viewBox="0 0 64 64">
+      <motion.circle cx="24" cy="28" r="10" fill="#fbbf24" animate={{ x: [-2, 2, -2] }} transition={{ duration: 4, repeat: Infinity }} />
+      <motion.path d="M50,34c0-7.7-6.3-14-14-14c-1.5,0-2.9,0.2-4.3,0.6C30.1,17.5,26.1,15,21.5,15C14,15,8,21,8,28.5C8,36,14,42,21.5,42H50c5.5,0,10-4.5,10-10S55.5,34,50,34z" fill="rgba(148,163,184,0.95)"
+        animate={{ y: [0, -2, 0] }} transition={{ duration: 4, repeat: Infinity }} />
+    </svg>
+  );
+};
+
+const WeatherParticles = ({ weatherName }) => {
+  const particles = Array(20).fill(null);
+  if (weatherName === "rain") return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map((_, i) => (
+        <motion.div key={i} className="absolute w-0.5 rounded-full bg-blue-300 opacity-60"
+          style={{ left: `${Math.random() * 100}%`, height: `${10 + Math.random() * 20}px` }}
+          animate={{ y: ["0vh", "100vh"], opacity: [0, 0.7, 0] }}
+          transition={{ duration: 0.8 + Math.random() * 0.5, repeat: Infinity, delay: Math.random() * 2, ease: "linear" }} />
+      ))}
+    </div>
+  );
+  if (weatherName === "snow") return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map((_, i) => (
+        <motion.div key={i} className="absolute w-2 h-2 rounded-full bg-white opacity-70"
+          style={{ left: `${Math.random() * 100}%` }}
+          animate={{ y: ["0vh", "100vh"], x: [0, Math.random() * 40 - 20], opacity: [0, 0.8, 0] }}
+          transition={{ duration: 3 + Math.random() * 2, repeat: Infinity, delay: Math.random() * 3, ease: "linear" }} />
+      ))}
+    </div>
+  );
+  if (weatherName === "clear") return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {Array(6).fill(null).map((_, i) => (
+        <motion.div key={i} className="absolute rounded-full bg-yellow-200 opacity-20"
+          style={{ width: `${60 + i * 40}px`, height: `${60 + i * 40}px`, top: "5%", left: "5%" }}
+          animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.25, 0.1] }}
+          transition={{ duration: 3 + i, repeat: Infinity, delay: i * 0.5 }} />
+      ))}
+    </div>
+  );
+  return null;
+};
+
+const GlassCard = ({ children, className = "" }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+    className={`backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl shadow-xl ${className}`}
+  >
+    {children}
+  </motion.div>
+);
 
 export default function Home() {
   const [location, setLocation] = useState("");
@@ -6,536 +131,308 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [coordinates, setCoordinates] = useState({ lat: null, lon: null });
+  const [unit, setUnit] = useState("C");
   const [mapInitialized, setMapInitialized] = useState(false);
   const [map, setMap] = useState(null);
   const [marker, setMarker] = useState(null);
+  const [theme, setTheme] = useState({ bg: "from-sky-600 via-blue-500 to-indigo-400", accent: "#38bdf8", name: "default" });
 
-  // Weather icon components
-  const SunnyIcon = () => (
-    <svg viewBox="0 0 24 24" className="text-yellow-400 w-12 h-12">
-      <circle cx="12" cy="12" r="5" fill="currentColor" />
-      <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-    </svg>
-  );
-  
-  const CloudyIcon = () => (
-    <svg viewBox="0 0 24 24" className="text-gray-400 w-12 h-12">
-      <path d="M18,10c-0.1,0-0.2,0-0.3,0c-0.5-2.8-3-5-6-5C8.5,5,6,7.1,5.4,10c-2.5,0.6-4.4,2.9-4.4,5.5C1,18.5,3.5,21,7,21h11c2.8,0,5-2.2,5-5 C23,12.2,20.8,10,18,10z" fill="currentColor" />
-    </svg>
-  );
-  
-  const RainIcon = () => (
-    <svg viewBox="0 0 24 24" className="text-blue-400 w-12 h-12">
-      <path d="M18,10c-0.1,0-0.2,0-0.3,0c-0.5-2.8-3-5-6-5C8.5,5,6,7.1,5.4,10c-2.5,0.6-4.4,2.9-4.4,5.5C1,18.5,3.5,21,7,21h11c2.8,0,5-2.2,5-5 C23,12.2,20.8,10,18,10z" fill="currentColor" />
-      <path d="M9,17v3M12,19v3M15,17v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-  
-  const PartlyCloudyIcon = () => (
-    <svg viewBox="0 0 24 24" className="text-gray-500 w-12 h-12">
-      <circle cx="8" cy="8" r="4" fill="#f59e0b" />
-      <path d="M18,12c-0.1,0-0.2,0-0.3,0c-0.5-2.8-3-5-6-5c-2,0-3.8,1-4.9,2.5 M5.4,12c-2.5,0.6-4.4,2.9-4.4,5.5C1,20.5,3.5,23,7,23h11c2.8,0,5-2.2,5-5 C23,14.2,20.8,12,18,12z" fill="currentColor" />
-    </svg>
-  );
-  
-  const WindIcon = () => (
-    <svg viewBox="0 0 24 24" className="text-gray-600 w-8 h-8 mx-auto">
-      <path d="M3,12h12.5c1.4,0,2.5-1.1,2.5-2.5S16.9,7,15.5,7c-0.9,0-1.7,0.5-2.1,1.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M5,15h12.5c1.4,0,2.5,1.1,2.5,2.5S18.9,20,17.5,20c-0.9,0-1.7-0.5-2.1-1.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M3,8h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-  
-  const HumidityIcon = () => (
-    <svg viewBox="0 0 24 24" className="text-blue-500 w-8 h-8 mx-auto">
-      <path d="M12,2.5L5.5,9c-2.1,2.1-2.1,5.5,0,7.6c1.1,1.1,2.5,1.6,3.9,1.6s2.8-0.5,3.9-1.6c1.1-1.1,1.6-2.5,1.6-3.9s-0.5-2.8-1.6-3.9L12,2.5z" 
-        fill="currentColor" />
-    </svg>
-  );
-  
-  const PrecipitationIcon = () => (
-    <svg viewBox="0 0 24 24" className="text-blue-500 w-8 h-8 mx-auto">
-      <path d="M12,2c0,0-10,12.8-10,18c0,5.2,4.5,9.5,10,9.5s10-4.2,10-9.5C22,14.8,12,2,12,2z" 
-        fill="none" stroke="currentColor" strokeWidth="2" />
-      <path d="M9,17.5v3M12,20v3M15,17.5v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
+  const convertTemp = (temp) => unit === "F" ? Math.round((temp * 9) / 5 + 32) : Math.round(temp);
 
-  // Function to get the appropriate weather icon based on the weather code
-  const getWeatherIcon = (code) => {
-    // WMO Weather interpretation codes (https://open-meteo.com/en/docs)
-    if (code === 0) {
-      return <SunnyIcon />;  // Clear sky
-    } else if (code >= 1 && code <= 3) {
-      return <PartlyCloudyIcon />;  // Partly cloudy
-    } else if (code >= 45 && code <= 48) {
-      return <CloudyIcon />;  // Fog
-    } else if (code >= 51 && code <= 67) {
-      return <RainIcon />;  // Drizzle or rain
-    } else if (code >= 71 && code <= 86) {
-      return <RainIcon />;  // Snow fall
-    } else if (code >= 95 && code <= 99) {
-      return <RainIcon />;  // Thunderstorm
-    } else {
-      return <CloudyIcon />;  // Default
-    }
-  };
-
-  // Mock data for fallback when API fails
-  const getMockWeatherData = (cityName = "Sample City") => {
+  const getMockWeatherData = () => {
     const now = new Date();
-    const hourlyTimes = Array(24).fill().map((_, i) => {
-      const time = new Date(now);
-      time.setHours(time.getHours() + i);
-      return time.toISOString();
-    });
-    
-    const dailyTimes = Array(7).fill().map((_, i) => {
-      const time = new Date(now);
-      time.setDate(time.getDate() + i);
-      return time.toISOString();
-    });
-    
     return {
       hourly: {
-        time: hourlyTimes,
+        time: Array(24).fill().map((_, i) => { const t = new Date(now); t.setHours(t.getHours() + i); return t.toISOString(); }),
         temperature_2m: Array(24).fill().map(() => Math.round(15 + Math.random() * 10)),
+        apparent_temperature: Array(24).fill().map(() => Math.round(13 + Math.random() * 10)),
         relativehumidity_2m: Array(24).fill().map(() => Math.round(40 + Math.random() * 40)),
         precipitation_probability: Array(24).fill().map(() => Math.round(Math.random() * 70)),
-        weathercode: Array(24).fill().map(() => [0, 1, 2, 3, 61][Math.floor(Math.random() * 5)]),
-        windspeed_10m: Array(24).fill().map(() => Math.round(5 + Math.random() * 15))
+        weathercode: Array(24).fill().map(() => [0, 1, 2, 61][Math.floor(Math.random() * 4)]),
+        windspeed_10m: Array(24).fill().map(() => Math.round(5 + Math.random() * 15)),
+        visibility: Array(24).fill().map(() => Math.round(5000 + Math.random() * 15000)),
+        uv_index: Array(24).fill().map(() => Math.round(Math.random() * 10)),
       },
       daily: {
-        time: dailyTimes,
-        weathercode: Array(7).fill().map(() => [0, 1, 2, 3, 61][Math.floor(Math.random() * 5)]),
+        time: Array(7).fill().map((_, i) => { const t = new Date(now); t.setDate(t.getDate() + i); return t.toISOString(); }),
+        weathercode: Array(7).fill().map(() => [0, 1, 2, 61][Math.floor(Math.random() * 4)]),
         temperature_2m_min: Array(7).fill().map(() => Math.round(10 + Math.random() * 8)),
-        temperature_2m_max: Array(7).fill().map(() => Math.round(18 + Math.random() * 10))
+        temperature_2m_max: Array(7).fill().map(() => Math.round(18 + Math.random() * 10)),
+        sunrise: Array(7).fill().map(() => { const t = new Date(now); t.setHours(6, 30); return t.toISOString(); }),
+        sunset: Array(7).fill().map(() => { const t = new Date(now); t.setHours(18, 30); return t.toISOString(); }),
       }
     };
   };
 
-  // Function to get city coordinates by name using Geocoding API
   const geocodeCity = async (cityName) => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
-      const response = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
-          cityName
-        )}&count=1&language=en&format=json`,
-        { 
-          signal: controller.signal,
-          mode: 'cors',
-          headers: {
-            'Accept': 'application/json'
-          }
-        }
-      );
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error("Failed to find location");
-      }
-      
-      const data = await response.json();
-      
-      if (!data.results || data.results.length === 0) {
-        throw new Error("City not found");
-      }
-      
-      return {
-        lat: data.results[0].latitude,
-        lon: data.results[0].longitude,
-        name: data.results[0].name,
-        country: data.results[0].country
-      };
-    } catch (error) {
-      console.error("Error geocoding city:", error);
-      
-      // Provide mock data with city name for development/demo purposes
-      console.log("Using mock data for location:", cityName);
-      return {
-        lat: 40.7128,
-        lon: -74.006,
-        name: cityName,
-        country: "Demo Mode"
-      };
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`);
+      const data = await res.json();
+      if (!data.results?.length) throw new Error("City not found");
+      return { lat: data.results[0].latitude, lon: data.results[0].longitude, name: data.results[0].name, country: data.results[0].country };
+    } catch {
+      return { lat: 40.7128, lon: -74.006, name: cityName, country: "Demo" };
     }
   };
 
-  // Function to fetch weather data using Open-Meteo API
   const fetchWeatherData = async (lat, lon) => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
-      const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,relativehumidity_2m,precipitation_probability,weathercode,windspeed_10m&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7`,
-        { 
-          signal: controller.signal,
-          mode: 'cors',
-          headers: {
-            'Accept': 'application/json'
-          }
-        }
+      const res = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,apparent_temperature,relativehumidity_2m,precipitation_probability,weathercode,windspeed_10m,visibility,uv_index&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=7`
       );
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch weather data");
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching weather:", error);
-      
-      // Return mock data for development/demo purposes
-      console.log("Using mock weather data");
+      if (!res.ok) throw new Error("Failed");
+      return await res.json();
+    } catch {
       return getMockWeatherData();
     }
   };
 
-  // Initialize Leaflet map
   const initializeMap = useCallback(() => {
-    // Check if leaflet is available
-    if (typeof window !== 'undefined' && !window.L) {
-      // Dynamically load Leaflet CSS and JS
-      const linkEl = document.createElement('link');
-      linkEl.rel = 'stylesheet';
-      linkEl.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css';
-      document.head.appendChild(linkEl);
-      
-      const scriptEl = document.createElement('script');
-      scriptEl.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js';
-      scriptEl.onload = () => {
-        createMap();
-      };
-      document.body.appendChild(scriptEl);
-    } else if (typeof window !== 'undefined' && window.L) {
-      createMap();
-    }
+    if (typeof window !== "undefined" && !window.L) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css";
+      document.head.appendChild(link);
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js";
+      script.onload = createMap;
+      document.body.appendChild(script);
+    } else if (window.L) createMap();
   }, []);
 
-  // Create map instance
   const createMap = useCallback(() => {
-    if (!mapInitialized && typeof window !== 'undefined' && window.L) {
-      // Default coordinates (New York City)
-      const defaultLat = coordinates.lat || 40.7128;
-      const defaultLon = coordinates.lon || -74.006;
-      
-      // Create map
-      const mapInstance = window.L.map('weatherMap').setView([defaultLat, defaultLon], 10);
-      
-      // Add OpenStreetMap tile layer
-      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(mapInstance);
-      
-      // Add marker
-      const markerInstance = window.L.marker([defaultLat, defaultLon]).addTo(mapInstance);
-      
-      setMap(mapInstance);
-      setMarker(markerInstance);
-      setMapInitialized(true);
+    if (!mapInitialized && typeof window !== "undefined" && window.L && document.getElementById("weatherMap")) {
+      const lat = coordinates.lat || 40.7128;
+      const lon = coordinates.lon || -74.006;
+      const m = window.L.map("weatherMap").setView([lat, lon], 10);
+      window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(m);
+      const mk = window.L.marker([lat, lon]).addTo(m);
+      setMap(m); setMarker(mk); setMapInitialized(true);
     }
   }, [coordinates.lat, coordinates.lon, mapInitialized]);
 
-  // Update map when coordinates change
   useEffect(() => {
     if (map && marker && coordinates.lat && coordinates.lon) {
-      const newLatLng = [coordinates.lat, coordinates.lon];
-      map.setView(newLatLng, 10);
-      marker.setLatLng(newLatLng);
-      
-      // Add popup with location name and temperature
-      if (weather) {
-        marker.bindPopup(`
-          <b>${coordinates.displayName || "Location"}</b><br>
-          Temperature: ${Math.round(weather.hourly.temperature_2m[0])}°C
-        `).openPopup();
-      }
+      const ll = [coordinates.lat, coordinates.lon];
+      map.setView(ll, 10);
+      marker.setLatLng(ll);
+      if (weather) marker.bindPopup(`<b>${coordinates.displayName}</b><br>${convertTemp(weather.hourly.temperature_2m[0])}°${unit}`).openPopup();
     }
   }, [coordinates, map, marker, weather]);
 
-  // Initialize map on component mount
   useEffect(() => {
-    if (!mapInitialized) {
-      initializeMap();
-    }
+    if (!mapInitialized) { const t = setTimeout(initializeMap, 500); return () => clearTimeout(t); }
   }, [initializeMap, mapInitialized]);
 
-  // Main function to handle weather search
-  const handleWeatherSearch = async () => {
-    if (!location.trim()) {
-      setError("Please enter a location");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Store the search term to use in fallback
-      const searchTerm = location;
-      
-      const geoData = await geocodeCity(searchTerm);
-      setCoordinates({ 
-        lat: geoData.lat, 
-        lon: geoData.lon,
-        displayName: `${geoData.name}, ${geoData.country}`
-      });
-      
-      const weatherData = await fetchWeatherData(geoData.lat, geoData.lon);
-      
-      // Verify we got necessary data fields
-      if (!verifyWeatherData(weatherData)) {
-        throw new Error("Incomplete weather data received");
-      }
-      
-      setWeather(weatherData);
-    } catch (err) {
-      console.error("Weather search error:", err);
-      
-      // Show a user-friendly error but continue with mock data
-      setError("Could not connect to weather service. Showing demo data instead.");
-      
-      // Create mock data using the location name
-      const mockGeoData = {
-        lat: 40.7128,
-        lon: -74.006,
-        displayName: `${location || "Sample City"} (Demo Mode)`
-      };
-      setCoordinates(mockGeoData);
-      
-      // Set mock weather data
-      setWeather(getMockWeatherData(location));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Function to verify weather data has all required fields
-  const verifyWeatherData = (data) => {
-    if (!data || !data.hourly || !data.daily) return false;
-    
-    const hourlyRequired = ['time', 'temperature_2m', 'relativehumidity_2m', 
-                          'precipitation_probability', 'weathercode', 'windspeed_10m'];
-    const dailyRequired = ['time', 'weathercode', 'temperature_2m_min', 'temperature_2m_max'];
-    
-    return hourlyRequired.every(field => Array.isArray(data.hourly[field])) && 
-           dailyRequired.every(field => Array.isArray(data.daily[field]));
-  };
-
-  // Get current location on initial load
   useEffect(() => {
-    const getInitialWeather = async () => {
+    if (weather) setTheme(getWeatherTheme(weather.hourly.weathercode[0]));
+  }, [weather]);
+
+  const handleSearch = async () => {
+    if (!location.trim()) { setError("Please enter a city"); return; }
+    setLoading(true); setError(null);
+    try {
+      const geo = await geocodeCity(location);
+      setCoordinates({ lat: geo.lat, lon: geo.lon, displayName: `${geo.name}, ${geo.country}` });
+      const data = await fetchWeatherData(geo.lat, geo.lon);
+      setWeather(data);
+    } catch {
+      setError("Could not load weather. Showing demo data.");
+      setCoordinates({ lat: 40.7128, lon: -74.006, displayName: `${location} (Demo)` });
+      setWeather(getMockWeatherData());
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
       try {
         if (navigator.geolocation) {
-          const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              timeout: 10000,
-              maximumAge: 60000
-            });
-          });
-          
-          setCoordinates({
-            lat: position.coords.latitude,
-            lon: position.coords.longitude,
-            displayName: "Current Location"
-          });
-          
-          setLoading(true);
-          const weatherData = await fetchWeatherData(
-            position.coords.latitude,
-            position.coords.longitude
-          );
-          
-          if (verifyWeatherData(weatherData)) {
-            setWeather(weatherData);
-          } else {
-            throw new Error("Incomplete weather data");
-          }
-        } else {
-          throw new Error("Geolocation not supported");
-        }
-      } catch (err) {
-        console.log("Initial weather fetch error:", err);
-        
-        // Silently fall back to demo data without showing error
-        const mockGeoData = {
-          lat: 40.7128,
-          lon: -74.006,
-          displayName: "New York (Demo Mode)"
-        };
-        setCoordinates(mockGeoData);
-        setWeather(getMockWeatherData("New York"));
-      } finally {
-        setLoading(false);
-      }
+          const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 }));
+          setCoordinates({ lat: pos.coords.latitude, lon: pos.coords.longitude, displayName: "Current Location" });
+          const data = await fetchWeatherData(pos.coords.latitude, pos.coords.longitude);
+          setWeather(data);
+        } else throw new Error("No geolocation");
+      } catch {
+        setCoordinates({ lat: -26.2041, lon: 28.0473, displayName: "Johannesburg, ZA" });
+        setWeather(getMockWeatherData());
+      } finally { setLoading(false); }
     };
-    
-    getInitialWeather();
+    init();
   }, []);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-50 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold text-blue-800 text-center mb-8">
-          🌤️ Weather Dashboard
-        </h1>
+  const currentCode = weather?.hourly?.weathercode?.[0] ?? 0;
+  const currentTemp = weather?.hourly?.temperature_2m?.[0] ?? 0;
+  const feelsLike = weather?.hourly?.apparent_temperature?.[0] ?? 0;
+  const humidity = weather?.hourly?.relativehumidity_2m?.[0] ?? 0;
+  const wind = weather?.hourly?.windspeed_10m?.[0] ?? 0;
+  const visibility = weather?.hourly?.visibility?.[0] ?? 0;
+  const uvIndex = weather?.hourly?.uv_index?.[0] ?? 0;
+  const sunrise = weather?.daily?.sunrise?.[0];
+  const sunset = weather?.daily?.sunset?.[0];
 
-        {/* Search Input */}
-        <div className="flex flex-col md:flex-row gap-2 mb-8">
+  return (
+    <div className={`min-h-screen bg-gradient-to-br ${theme.bg} relative overflow-hidden transition-all duration-1000`}>
+      <WeatherParticles weatherName={theme.name} />
+
+      <div className="relative z-10 max-w-5xl mx-auto p-4 md:p-8">
+
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
+          <h1 className="text-5xl font-black text-white drop-shadow-lg tracking-tight">SKYE</h1>
+          <p className="text-white/70 text-xs tracking-widest uppercase mt-1">Weather Intelligence</p>
+        </motion.div>
+
+        {/* Search */}
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex gap-2 mb-8">
           <input
             type="text"
-            placeholder="Search city"
+            placeholder="Search any city..."
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleWeatherSearch()}
-            className="flex-1 p-3 rounded-lg shadow-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            className="flex-1 px-5 py-3.5 rounded-2xl bg-white/15 backdrop-blur-md border border-white/30 text-white placeholder-white/50 outline-none focus:bg-white/20 transition-all"
           />
-          <button 
-            onClick={handleWeatherSearch}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200"
-          >
+          <button onClick={handleSearch} className="px-6 py-3.5 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 text-white font-bold hover:bg-white/30 transition-all">
             Search
           </button>
-        </div>
+          <button onClick={() => setUnit(unit === "C" ? "F" : "C")} className="px-4 py-3.5 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 text-white font-bold hover:bg-white/30 transition-all">
+            °{unit === "C" ? "F" : "C"}
+          </button>
+        </motion.div>
 
         {error && (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded flex items-center">
-            <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p>{error}</p>
-          </div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6 px-4 py-3 rounded-xl bg-red-500/20 border border-red-400/30 text-white text-sm">
+            {error}
+          </motion.div>
         )}
 
         {loading && (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="flex justify-center py-20">
+            <motion.div className="w-16 h-16 rounded-full border-4 border-white/30 border-t-white"
+              animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
           </div>
         )}
 
-        {weather && (
-          <div className="space-y-8">
-            {/* Current Weather and Map */}
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Current Weather */}
-              <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 text-white">
-                  <h3 className="text-lg font-semibold">Current Weather</h3>
-                </div>
-                <div className="p-6">
-                  <div className="flex flex-col md:flex-row items-center justify-between">
-                    <div className="flex items-center mb-4 md:mb-0">
-                      {getWeatherIcon(weather.hourly.weathercode[0])}
-                      <div className="ml-4">
-                        <h2 className="text-2xl font-bold">{coordinates.displayName || "Unknown Location"}</h2>
-                        <p className="text-gray-600">{new Date(weather.hourly.time[0]).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                    <div className="text-center md:text-right">
-                      <p className="text-5xl font-bold text-blue-800">{Math.round(weather.hourly.temperature_2m[0])}°C</p>
-                      <p className="text-gray-600">Feels like {Math.round(weather.hourly.temperature_2m[0])}°C</p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-4 mt-8 text-center">
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <HumidityIcon />
-                      <p className="text-gray-600 mt-1">Humidity</p>
-                      <p className="font-semibold">{weather.hourly.relativehumidity_2m[0]}%</p>
-                    </div>
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <WindIcon />
-                      <p className="text-gray-600 mt-1">Wind</p>
-                      <p className="font-semibold">{weather.hourly.windspeed_10m[0]} km/h</p>
-                    </div>
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <PrecipitationIcon />
-                      <p className="text-gray-600 mt-1">Precipitation</p>
-                      <p className="font-semibold">{weather.hourly.precipitation_probability[0]}%</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Map */}
-              <div className="bg-white rounded-xl shadow-lg overflow-hidden h-full">
-                <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 text-white">
-                  <h3 className="text-lg font-semibold">Location Map</h3>
-                </div>
-                <div className="p-0">
-                  <div id="weatherMap" className="h-96 w-full z-0"></div>
-                </div>
-              </div>
-            </div>
+        <AnimatePresence>
+          {weather && !loading && (
+            <motion.div key="weather" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
 
-            {/* Hourly Forecast */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 text-white">
-                <h3 className="text-lg font-semibold">Today's Forecast</h3>
+              {/* Hero */}
+              <GlassCard className="p-6 md:p-8">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="flex items-center gap-6">
+                    <WeatherIcon code={currentCode} size={80} />
+                    <div>
+                      <h2 className="text-white text-2xl font-bold">{coordinates.displayName || "Unknown"}</h2>
+                      <p className="text-white/60 text-sm">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+                      <p className="text-white/80 mt-1 font-medium">{getWeatherLabel(currentCode)}</p>
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <motion.p className="text-8xl font-black text-white drop-shadow-lg" key={unit} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+                      {convertTemp(currentTemp)}°
+                    </motion.p>
+                    <p className="text-white/60 text-sm">Feels like {convertTemp(feelsLike)}°{unit}</p>
+                  </div>
+                </div>
+              </GlassCard>
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: "Humidity", value: `${humidity}%`, icon: "💧" },
+                  { label: "Wind", value: `${wind} km/h`, icon: "💨" },
+                  { label: "Visibility", value: `${(visibility / 1000).toFixed(1)} km`, icon: "👁️" },
+                  { label: "UV Index", value: uvIndex <= 2 ? `${uvIndex} Low` : uvIndex <= 5 ? `${uvIndex} Mod` : `${uvIndex} High`, icon: "☀️" },
+                ].map((stat, i) => (
+                  <GlassCard key={i} className="p-4 text-center">
+                    <p className="text-2xl mb-1">{stat.icon}</p>
+                    <p className="text-white font-bold text-lg">{stat.value}</p>
+                    <p className="text-white/60 text-xs uppercase tracking-wider">{stat.label}</p>
+                  </GlassCard>
+                ))}
               </div>
-              <div className="p-6">
-                <div className="flex overflow-x-auto gap-4 pb-4">
-                  {weather.hourly.time.slice(0, 24).filter((_, i) => i % 4 === 0).map((time, index) => {
-                    const dataIndex = index * 4;
+
+              {/* Sunrise / Sunset */}
+              {sunrise && sunset && (
+                <GlassCard className="p-5">
+                  <div className="flex justify-around items-center">
+                    <div className="text-center">
+                      <p className="text-3xl mb-1">🌅</p>
+                      <p className="text-white font-bold">{new Date(sunrise).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+                      <p className="text-white/60 text-xs uppercase tracking-wider">Sunrise</p>
+                    </div>
+                    <div className="h-12 w-px bg-white/20" />
+                    <div className="text-center">
+                      <p className="text-3xl mb-1">🌇</p>
+                      <p className="text-white font-bold">{new Date(sunset).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+                      <p className="text-white/60 text-xs uppercase tracking-wider">Sunset</p>
+                    </div>
+                    <div className="h-12 w-px bg-white/20" />
+                    <div className="text-center">
+                      <p className="text-white/60 text-xs uppercase tracking-wider mb-1">Day Length</p>
+                      <p className="text-white font-bold">
+                        {Math.round((new Date(sunset) - new Date(sunrise)) / 3600000)}h {Math.round(((new Date(sunset) - new Date(sunrise)) % 3600000) / 60000)}m
+                      </p>
+                    </div>
+                  </div>
+                </GlassCard>
+              )}
+
+              {/* Hourly */}
+              <GlassCard className="p-5">
+                <p className="text-white/70 text-xs uppercase tracking-widest mb-4 font-semibold">Today's Forecast</p>
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {weather.hourly.time.slice(0, 24).filter((_, i) => i % 3 === 0).map((time, idx) => {
+                    const di = idx * 3;
                     return (
-                      <div key={index} className="flex-shrink-0 text-center bg-blue-50 p-4 rounded-lg w-24">
-                        <p className="text-gray-700 font-medium">
-                          {new Date(time).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                        <div className="my-2">
-                          {getWeatherIcon(weather.hourly.weathercode[dataIndex])}
-                        </div>
-                        <p className="text-blue-800 font-bold">{Math.round(weather.hourly.temperature_2m[dataIndex])}°C</p>
-                        <p className="text-xs text-gray-500">{weather.hourly.precipitation_probability[dataIndex]}% rain</p>
-                      </div>
+                      <motion.div key={idx} whileHover={{ scale: 1.05 }}
+                        className="flex-shrink-0 text-center bg-white/10 hover:bg-white/20 transition-all rounded-xl p-3 w-20 border border-white/10">
+                        <p className="text-white/60 text-xs">{new Date(time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+                        <div className="my-2 flex justify-center"><WeatherIcon code={weather.hourly.weathercode[di]} size={28} /></div>
+                        <p className="text-white font-bold text-sm">{convertTemp(weather.hourly.temperature_2m[di])}°</p>
+                        <p className="text-blue-200 text-xs">{weather.hourly.precipitation_probability[di]}%</p>
+                      </motion.div>
                     );
                   })}
                 </div>
-              </div>
-            </div>
+              </GlassCard>
 
-            {/* Daily Forecast */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 text-white">
-                <h3 className="text-lg font-semibold">7-Day Forecast</h3>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
+              {/* 7-Day */}
+              <GlassCard className="p-5">
+                <p className="text-white/70 text-xs uppercase tracking-widest mb-4 font-semibold">7-Day Forecast</p>
+                <div className="space-y-2">
                   {weather.daily.time.map((date, i) => (
-                    <div key={i} className="flex items-center justify-between hover:bg-blue-50 p-3 rounded-lg transition duration-200">
-                      <div className="flex items-center">
-                        <span className="w-16 font-medium text-gray-700">
-                          {i === 0 ? "Today" : new Date(date).toLocaleDateString(undefined, {
-                            weekday: "short",
-                          })}
-                        </span>
-                        <div className="ml-4">
-                          {getWeatherIcon(weather.daily.weathercode[i])}
-                        </div>
-                      </div>
+                    <motion.div key={i} whileHover={{ x: 4 }}
+                      className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white/10 transition-all">
+                      <span className="text-white/80 w-16 text-sm font-medium">
+                        {i === 0 ? "Today" : new Date(date).toLocaleDateString(undefined, { weekday: "short" })}
+                      </span>
+                      <div className="w-8 flex justify-center"><WeatherIcon code={weather.daily.weathercode[i]} size={24} /></div>
+                      <span className="text-white/60 text-xs w-24 text-center">{getWeatherLabel(weather.daily.weathercode[i])}</span>
                       <div className="text-right">
-                        <p className="font-bold text-blue-800">
-                          {Math.round(weather.daily.temperature_2m_min[i])}° - {" "}
-                          {Math.round(weather.daily.temperature_2m_max[i])}°
-                        </p>
+                        <span className="text-white font-bold text-sm">{convertTemp(weather.daily.temperature_2m_max[i])}°</span>
+                        <span className="text-white/50 text-sm"> / {convertTemp(weather.daily.temperature_2m_min[i])}°</span>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
+              </GlassCard>
+
+              {/* Map */}
+              <GlassCard className="overflow-hidden">
+                <div className="p-4 border-b border-white/10">
+                  <p className="text-white/70 text-xs uppercase tracking-widest font-semibold">Location Map</p>
+                </div>
+                <div id="weatherMap" className="h-64 w-full" />
+              </GlassCard>
+
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
