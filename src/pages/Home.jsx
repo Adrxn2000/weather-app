@@ -149,9 +149,7 @@ const InteractiveMap = ({ lat, lon, isDark, onMapClick }) => {
       const map = L.map("leaflet-map", { zoomControl: true, attributionControl: true })
         .setView([lat, lon], 10);
 
-      const tileUrl = isDark
-        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+      const tileUrl = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 
       const tileLayer = L.tileLayer(tileUrl, {
         attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
@@ -205,26 +203,26 @@ const InteractiveMap = ({ lat, lon, isDark, onMapClick }) => {
   }, [lat, lon]);
 
   // ── Effect 3: Swap tile layer when theme changes ──
-  useEffect(() => {
-    if (!mapInstanceRef.current || !window.L) return;
-    const L = window.L;
+  // useEffect(() => {
+  //   if (!mapInstanceRef.current || !window.L) return;
+  //   const L = window.L;
 
-    if (tileLayerRef.current) {
-      mapInstanceRef.current.removeLayer(tileLayerRef.current);
-      tileLayerRef.current = null;
-    }
+  //   if (tileLayerRef.current) {
+  //     mapInstanceRef.current.removeLayer(tileLayerRef.current);
+  //     tileLayerRef.current = null;
+  //   }
 
-    const tileUrl = isDark
-      ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-      : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+  //   const tileUrl = isDark
+  //     ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+  //     : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 
-    const newTile = L.tileLayer(tileUrl, {
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-      maxZoom: 19,
-    }).addTo(mapInstanceRef.current);
+  //   const newTile = L.tileLayer(tileUrl, {
+  //     attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+  //     maxZoom: 19,
+  //   }).addTo(mapInstanceRef.current);
 
-    tileLayerRef.current = newTile;
-  }, [isDark]);
+  //   tileLayerRef.current = newTile;
+  // }, [isDark]);
 
   return (
     <div ref={mapRef} className="relative w-full" style={{ height: "280px" }}>
